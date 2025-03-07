@@ -10,22 +10,16 @@ int main() {
     int grades[NUM_GRADES];
     int highest_grade = 0;
 
-    // Seed the random number generator
     srand(time(NULL));
 
-    // Generate random grades between 0 and 100
-    for (int i = 0; i < NUM_GRADES; i++) {
+    for (int i = 0; i < NUM_GRADES; i++)
         grades[i] = rand() % 101;
-    }
 
-    // Find the highest grade
     for (int i = 0; i < NUM_GRADES; i++) {
-        if (grades[i] > highest_grade) {
+        if (grades[i] > highest_grade) 
             highest_grade = grades[i];
-        }
     }
 
     printf("The highest grade is: %d\n", highest_grade);
-
     return 0;
 }
