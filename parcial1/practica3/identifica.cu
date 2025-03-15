@@ -17,7 +17,7 @@ __global__ void identifica(void)
   //Obtener el identificador del bloque
   IdBloque =  blockIdx.x;
 
-  printf("Hola soy el hilo %d del Bloque %d \n",IdHilo, IdBloque);
+  printf("Hola soy el hilo %d (del Bloque %d)\n", Id, Hilo, IdBloque);
 
   if(IdHilo==0 && IdBloque==0)
   {
