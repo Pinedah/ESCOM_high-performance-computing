@@ -10,13 +10,13 @@ Compilar: nvcc 03_mem.cu -o 01_mem.x
 #define N 2000
 #define M 3000
 
-// Funcion para sumar una constante en el device
-__global__ void suma(float *arreglo, int c)
+// Funcion para sumar dos matrices en el device
+__global__ void suma(float *m1, float *m2, float *m3)
 {
     // for (int i = 0; i < N * N; i++)
     int i = blockIdx.x * blockDim.x + threadIdx.x;
     if(i < N * M)
-        arreglo[i] += c;
+        m3[i] = m1[i] + m2[i];
 }
 
 // Función para imprimir un arreglo en el host
@@ -24,7 +24,8 @@ void imprimir(float *arreglo)
 {
     for (int i = N - 10; i < N; i++){
         for (int j = M - 10 ; j < M; j++)
-            printf("Arreglo[%d][%d]: %.2f\n", i, j, arreglo[N * i + j]);
+            //printf("Arreglo[%d][%d]: %.2f\n", i, j, arreglo[N * i + j]);
+            printf("%.1f\t", arreglo[N * i + j]);
         printf("\n");
     }
 }
@@ -75,16 +76,17 @@ int main(int argc, char **argv)
 
     // Copiar información al device
     cudaMemcpy(m1_device, m1_host, N * M * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(m2_device, m2_host, N * M * sizeof(float), cudaMemcpyHostToDevice);
 
     nHilos = 512;
     nBloques = ((N * M) / nHilos) + 1;
 
     // Llamar a la función suma
-    suma<<<nBloques, nHilos>>>(m1_device, 10);
-    cudaMemcpy(m1_host, m1_device, N * M * sizeof(float), cudaMemcpyDeviceToHost);
+    suma<<<nBloques, nHilos>>>(m1_device, m2_device, m_res_device);
+    cudaMemcpy(m_res_host, m_res_device, N * M * sizeof(float), cudaMemcpyDeviceToHost);
 
-    //printf(" -------------- Arreglo con la suma --------------\n");
-    //imprimir(m1_host);
+    printf(" -------------- Suma de matrices en el device --------------\n");
+    imprimir(m_res_host);
 
     // Liberar memoria
     cudaFree(m1_device);
