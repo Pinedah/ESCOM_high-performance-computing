@@ -66,11 +66,50 @@ void escribir_archivo(const char *nombre_archivo, const char *contenido) {
     fclose(archivo);
 }
 
+void cifrar_descifrar(int cifrado_descifrado, int bloques, int hilos, char *contenido, char *contenido_device, int desplazamiento) {
+
+    const char *archivo_salida_cifrado = "salida_cifrado.txt";
+    const char *archivo_salida_descifrado = "salida_descifrado.txt";
+
+    if(cifrado_descifrado == 1) {
+        printf("\n Cifrando...\n");
+        cifrado_cesar<<<bloques, hilos>>>(contenido_device, desplazamiento);
+        cudaDeviceSynchronize(); // se asegura que el kernel haya terminado de ejecutarse
+        printf(" ✔  Cifrado completado.\n");
+
+        cudaMemcpy(contenido, contenido_device, sizeof(char) * strlen(contenido), cudaMemcpyDeviceToHost);
+
+        escribir_archivo(archivo_salida_cifrado, contenido);
+        printf("\n → El archivo cifrado se ha guardado en el archivo %s\n", archivo_salida_cifrado);
+
+        printf(" → Puede visualizar el contenido del archivo desde la terminar de la siguiente manera:\n");
+        printf("\tLinux:\t\tcat %s\n", archivo_salida_cifrado);
+        printf("\tWindows:\ttype %s\n", archivo_salida_cifrado);
+
+    } else if(cifrado_descifrado == 2) {
+        printf("\n Descifrando...\n");
+        descifrado_cesar<<<bloques, hilos>>>(contenido_device, desplazamiento);
+        cudaDeviceSynchronize(); // se asegura que el kernel haya terminado de ejecutarse
+        printf(" ✔  Descifrado completado.\n");
+
+        cudaMemcpy(contenido, contenido_device, sizeof(char) * strlen(contenido), cudaMemcpyDeviceToHost);
+
+        escribir_archivo(archivo_salida_descifrado, contenido);
+        printf("\n → El archivo descifrado se ha guardado en el archivo %s\n", archivo_salida_descifrado);
+
+        printf(" → Puede visualizar el contenido del archivo desde la terminar de la siguiente manera:\n");
+        printf("\tLinux:\t\tcat %s\n", archivo_salida_descifrado);
+        printf("\tWindows:\ttype %s\n", archivo_salida_descifrado);
+
+    } else {
+        printf("Opcion no valida :(\n");
+        return;
+    }
+}
+
 int main() {
     char *contenido = NULL;
     char *contenido_device = NULL;
-    const char *archivo_salida_cifrado = "salida_cifrado.txt";
-    const char *archivo_salida_descifrado = "salida_descifrado.txt";
 
     int desplazamiento, cifrado_descifrado;
     int nHilos, nBloques;
@@ -79,18 +118,18 @@ int main() {
     // Mostrar información del programa
     printf("\n☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆ CIFRADO CESAR ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆ \n");
     
-    printf("\nEl cifrado cesar es un tipo de cifrado por sustitución en \n");
-    printf("el que una letra en el texto original es reemplazada por \n");
-    printf("otra letra que se encuentra un número fijo de posiciones \n");
-    printf("más adelante en el alfabeto.\n");
-    printf("\nEn este programa se cifrará o descifrará un texto leído de un archivo.\n\n");
+    printf("\n El cifrado cesar es un tipo de cifrado por sustitución en \n");
+    printf(" el que una letra en el texto original es reemplazada por \n");
+    printf(" otra letra que se encuentra un número fijo de posiciones \n");
+    printf(" más adelante en el alfabeto.\n");
+    printf("\n En este programa se cifrará o descifrará un texto leído de un archivo.\n\n");
 
     // Leer las condiciones del usuario
-    printf("1. Ingrese la ruta del archivo a leer: ");
+    printf(" 1. Ingrese la ruta del archivo a leer: ");
     scanf("%s", ruta);
-    printf("2. Ingrese el desplazamiento: ");
+    printf(" 2. Ingrese el desplazamiento: ");
     scanf("%d", &desplazamiento);
-    printf("3. Ingrese 1 para cifrar o 2 para descifrar: ");
+    printf(" 3. Ingrese 1 para cifrar o 2 para descifrar: ");
     scanf("%d", &cifrado_descifrado);
 
     leer_archivo(ruta, &contenido);
@@ -105,41 +144,11 @@ int main() {
     nHilos = 512;
     nBloques = ((strlen(contenido) / nHilos) + 1);
 
-    // Cifrar o descifrar el contenido
-    if(cifrado_descifrado == 1) {
-        printf("\n ▀  Cifrando...\n");
-        cifrado_cesar<<<nBloques, nHilos>>>(contenido_device, desplazamiento);
-        cudaDeviceSynchronize(); // se asegura que el kernel haya terminado de ejecutarse
-        printf(" ✔  Cifrado completado.\n");
+    // Cifrar o descifrar
+    cifrar_descifrar(cifrado_descifrado, nBloques, nHilos, contenido, contenido_device, desplazamiento);
 
-    } else if(cifrado_descifrado == 2) {
-        printf("\n ▀  Descifrando...\n");
-        descifrado_cesar<<<nBloques, nHilos>>>(contenido_device, desplazamiento);
-        cudaDeviceSynchronize(); // se asegura que el kernel haya terminado de ejecutarse
-        printf(" ✔  Descifrado completado.\n");
-
-    } else {
-        printf("Opcion no valida :(\n");
-        return 0;
-    }
-
-    // Copiar el contenido al host
-    cudaMemcpy(contenido, contenido_device, sizeof(char) * strlen(contenido), cudaMemcpyDeviceToHost);
-
-    if(cifrado_descifrado == 1) {
-        escribir_archivo(archivo_salida_cifrado, contenido);
-        printf("\n-> El archivo cifrado se ha guardado en el archivo %s\n", archivo_salida_cifrado);
-        
-    } else if(cifrado_descifrado == 2) {
-        escribir_archivo(archivo_salida_descifrado, contenido);
-        printf("\n-> El archivo descifrado se ha guardado en el archivo %s\n", archivo_salida_descifrado);
-    }
-
-
-    printf("-> Puede visualizar el contenido del archivo desde la terminar de la siguiente manera:\n");
-    printf("Usando linux -> cat %s\n", archivo_salida_cifrado);
-    printf("Usando windows -> type %s\n", archivo_salida_cifrado);
-    printf("\n☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆ Ejecución finalizada ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆\n\n");
+    printf("\n☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆ Ejecución finalizada ☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆☆\n");
+    printf(" → developed by: Panké <3\n\n");
     
     // Liberar memorias
     cudaFree(contenido_device);
