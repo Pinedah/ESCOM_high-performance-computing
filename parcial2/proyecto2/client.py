@@ -5,7 +5,7 @@ import sys
 import os
 
 # Configuración del cliente
-COORDINATOR_HOST = '8.12.0.233'  # Cambia a la IP del coordinador
+COORDINATOR_HOST = '192.168.100.52'  # Cambia a la IP del coordinador
 COORDINATOR_PORT = 6000
 
 def clear_screen():

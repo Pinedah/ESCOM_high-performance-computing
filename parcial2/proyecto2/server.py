@@ -4,13 +4,19 @@ import threading
 import os
 import time
 import datetime
+import uuid
 
 # Configuración del servidor
 SERVER_HOST = '0.0.0.0'  # Escuchar en todas las interfaces
-SERVER_PORT = 6001
+SERVER_PORT = 6001  # Puerto para recibir mensajes
+
+# Configuración para conectar al coordinador
+COORDINATOR_HOST = '192.168.1.100'  # Cambia a la IP del coordinador
+COORDINATOR_REGISTER_PORT = 6099  # Puerto para registro de servidores
 
 # Para guardar los mensajes
 log_file = "mensajes.log"
+server_id = str(uuid.uuid4())[:8]  # ID único para este servidor
 
 def clear_screen():
     os.system('clear')
@@ -58,30 +64,89 @@ def handle_coordinator(conn, addr):
     finally:
         print(f"[-] Coordinador desconectado: {addr[0]}:{addr[1]}")
         conn.close()
+        
+def register_with_coordinator():
+    """Registrarse con el coordinador"""
+    while True:
+        try:
+            # Conectar al coordinador
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.connect((COORDINATOR_HOST, COORDINATOR_REGISTER_PORT))
+            
+            # Enviar mensaje de registro
+            sock.sendall(f"SERVER:{server_id}".encode('utf-8'))
+            
+            # Recibir confirmación
+            response = sock.recv(1024).decode('utf-8')
+            if response.startswith("REGISTERED:"):
+                print(f"[+] Registrado con el coordinador: {response}")
+                return sock
+                
+        except Exception as e:
+            print(f"[!] No se pudo registrar con el coordinador: {e}")
+            print("[!] Reintentando en 5 segundos...")
+            time.sleep(5)
+
+def coordinator_communication(sock):
+    """Mantener comunicación con el coordinador"""
+    try:
+        while True:
+            # Esperar mensajes del coordinador
+            data = sock.recv(1024)
+            if not data:
+                raise Exception("Conexión cerrada por el coordinador")
+                
+            mensaje = data.decode('utf-8')
+            
+            # Responder a pings
+            if mensaje == "PING":
+                sock.sendall("PONG".encode('utf-8'))
+                continue
+                
+            # Procesar mensajes regulares
+            try:
+                nombre, contenido = mensaje.split('|', 1)
+                print(f"\n[NUEVO] Mensaje de {nombre}: {contenido}")
+                
+                # Guardar el mensaje
+                save_message(f"{nombre}: {contenido}")
+                
+            except ValueError:
+                print(f"[!] Mensaje con formato incorrecto: {mensaje}")
+                
+    except Exception as e:
+        print(f"[!] Error en comunicación con coordinador: {e}")
+        print("[!] Intentando reconectar...")
+        return False
 
 def main():
-    # Crear socket servidor
-    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    print(f"[+] Iniciando servidor de mensajes ID:{server_id}")
+    print(f"[+] Los mensajes se guardarán en {log_file}")
+    
+    # Registrarse con el coordinador
+    coordinator_socket = register_with_coordinator()
+    
+    # Iniciar hilo para comunicación con el coordinador
+    comm_thread = threading.Thread(target=coordinator_communication, args=(coordinator_socket,))
+    comm_thread.daemon = True
+    comm_thread.start()
     
     try:
-        server_socket.bind((SERVER_HOST, SERVER_PORT))
-        server_socket.listen(1)  # Solo esperamos conexión del coordinador
-        print(f"[+] Servidor iniciado en {SERVER_HOST}:{SERVER_PORT}")
-        print(f"[+] Los mensajes se guardarán en {log_file}")
-        
         while True:
-            conn, addr = server_socket.accept()
+            if not comm_thread.is_alive():
+                print("[!] Reconectando con el coordinador...")
+                coordinator_socket = register_with_coordinator()
+                
+                comm_thread = threading.Thread(target=coordinator_communication, args=(coordinator_socket,))
+                comm_thread.daemon = True
+                comm_thread.start()
             
-            # Iniciar hilo para manejar la conexión
-            coordinator_thread = threading.Thread(target=handle_coordinator, args=(conn, addr))
-            coordinator_thread.daemon = True
-            coordinator_thread.start()
+            time.sleep(1)
             
     except KeyboardInterrupt:
         print("\n[!] Deteniendo servidor...")
-    finally:
-        server_socket.close()
+        if coordinator_socket:
+            coordinator_socket.close()
         
 if __name__ == "__main__":
     clear_screen()
