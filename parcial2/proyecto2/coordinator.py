@@ -3,7 +3,6 @@ import socket
 import threading
 import time
 import os
-import random
 
 # Configuración del coordinador
 COORDINATOR_HOST = '0.0.0.0'  # Escuchar en todas las interfaces
