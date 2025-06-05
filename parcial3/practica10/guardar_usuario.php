@@ -1,9 +1,9 @@
 <?php
 // Configuración de conexión (ajústala según tu VM en Azure)
-$host = "TU_DIRECCION_IP_VM";  // Ej: 20.84.123.45
-$usuario = "TU_USUARIO";
-$contrasena = "TU_CONTRASENA";
-$base_datos = "TU_BASE_DE_DATOS";
+$host = "localhost";  // Ej: 20.84.123.45
+$usuario = "admin";
+$contrasena = "Password123#";
+$base_datos = "school";
 
 // Conectar a MySQL
 $conn = new mysqli($host, $usuario, $contrasena, $base_datos);
@@ -23,7 +23,7 @@ $pass = $_POST['pass'];
 $pass_hash = md5($pass);  // Solo para fines educativos, mejor usar password_hash() en proyectos reales
 
 // Preparar y ejecutar la inserción
-$sql = "INSERT INTO usuarios (name, age, email, pass) VALUES (?, ?, ?, ?)";
+$sql = "INSERT INTO teachers (name, age, email, pass) VALUES (?, ?, ?, ?)";
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("siss", $name, $age, $email, $pass_hash);
