@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Subir Imagen a Azure Blob</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <form action="upload.php" method="POST" enctype="multipart/form-data">
+            <h2>Sube tu imagen</h2>
+            <div class="form-group">
+                <label for="archivo">Seleccionar archivo:</label>
+                <input type="file" name="archivo" id="archivo" accept="image/*" required>
+            </div>
+            <input type="submit" value="Subir Imagen">
+        </form>
+    </div>
+</body>
+</html>
